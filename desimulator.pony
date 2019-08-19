@@ -1,6 +1,7 @@
 use "collections"
 use "promises"
 use "random"
+use "time"
 
 class Graph
    """
@@ -21,7 +22,8 @@ class Graph
       Constructor for Graph.
       """
       nodes = ["n1"; "n2"; "n3"]
-      edges = [("n1","n2", F64(3)); ("n2","n3", F64(4)); ("n3","n1", F64(5))]
+      //edges = [("n1","n2", F64(3)); ("n2","n3", F64(4)); ("n3","n1", F64(5))]
+      edges = [("n1","n2", F64(3)); ("n2","n3", F64(4))]
    
 
 class val PathStep
@@ -46,7 +48,31 @@ class Path
       
    fun first(): PathStep val? =>
       steps(0)?
+      
+   fun destination(): Agent tag? =>
+      let last = steps(steps.size() - 1)?
+      last.agent
 
+   fun distance(): F64 =>
+      var dist: F64 = 0
+      for st in steps.values() do
+         dist = dist + st.distance
+      end
+      dist
+   
+   fun is_in_path(ag: Agent tag): Bool =>
+      for st in steps.values() do
+         if (digestof ag) == (digestof st.agent) then
+            true
+         end
+      end
+      false
+
+   fun display(_env: Env) =>
+      for st in steps.values() do
+         _env.out.print("         step " + ((digestof st.agent) % 1000).string() + " " + st.distance.string())
+      end
+      
 class val Port
    """
    Every Agent can haven several ports.
@@ -133,6 +159,16 @@ trait Agent
    Every agent implements this trait
    """
    fun sim(): Simulator tag
+
+   /*
+   fun eq(ag: Agent tag): Bool =>
+      (digestof ag) == (digestof this)
+   fun ne(ag: Agent tag): Bool =>
+      (digestof ag) != (digestof this)
+   fun hash(): USize =>
+      digestof this
+    */
+
    be add_neighbour(n: Agent tag, dist: F64)
    be display()
    be receive_event(from: Agent tag, event: Event val)
@@ -147,7 +183,9 @@ actor Node is Agent
    let _env: Env
    let _neighbours: SetIs[Port val]
    var _counter: U32
-   let _routes: Array[Path val]
+   //let _routes: Array[Path val]
+   //let _routes: Map[Agent tag, Path val]
+   let _routes: Map[USize, Path val]
 
    new create(si: Simulator, env: Env, name: String) =>
       _sim = si
@@ -155,7 +193,8 @@ actor Node is Agent
       _name = name
       _neighbours = SetIs[Port val].create()
       _counter = 0
-      _routes = Array[Path val]
+      //_routes = Array[Path val]
+      _routes = Map[USize, Path val]
       _env.out.print("create node " + _name)
 
    be add_neighbour(n: Agent tag, dist: F64) =>
@@ -163,11 +202,17 @@ actor Node is Agent
       _neighbours.set(Port(PathStep(n, dist)))
 
    be display() =>
-      _env.out.print("display Node  "  + _name)
+      _env.out.print("display Node  "  + _name + " " + ((digestof this) % 1000).string())
+      _env.out.print("   ports")
       for po in _neighbours.values() do
-         _env.out.print("   port "  + (digestof po.step.agent).string() + " " + po.step.distance.string())
+         _env.out.print("      port "  + ((digestof po.step.agent) % 1000).string() + " " + po.step.distance.string())
       end
-      
+      _env.out.print("   routes")
+      for ro in _routes.values() do
+         _env.out.print("      route ")
+         ro.display(_env)
+      end
+
    be receive_event(from: Agent tag, event: Event val) =>
       _env.out.print("Node receive_event")
       match event
@@ -175,10 +220,20 @@ actor Node is Agent
          _env.out.print("Node receive_event start")
          // add all the neighbours as route
          for po in _neighbours.values() do
+            _env.out.print("Node start po")
             let pa: Path val = Path([po.step])
-            _routes.push(pa)
+            //_routes.push(pa)
+            try
+               let dst = pa.destination()?
+               _env.out.print("Node start dst " + (digestof dst).string())
+               _routes.insert(digestof dst, pa)
+               _env.out.print("Node start routes size " + _routes.size().string())
+            else
+               _env.out.print("Node start no dst")
+            end
          end
          sim().start_timer(3000, this, TimerEvent)
+
       | TimerEvent =>
          _env.out.print("Node receive_event timer event " + _counter.string())
          send_all_routes()
@@ -186,9 +241,35 @@ actor Node is Agent
          if _counter < 5 then
             sim().start_timer(3000, this, TimerEvent)
          end
+
       | let rev: RouteEvent val =>
          _env.out.print("Node receive_event route event")
          _env.out.print("   path size " + rev.path.steps.size().string())
+         if not rev.path.is_in_path(this) then
+            _env.out.print("Node route is not in path")
+            try
+               let dst = rev.path.destination()?
+               if not _routes.contains(digestof dst) then
+                  _env.out.print("Node route is not in routes")
+                  _routes.insert(digestof dst, rev.path)
+               else
+                  _env.out.print("Node route is in routes")
+                  let pa = _routes(digestof dst)?
+                  _env.out.print("Node route distance new " + rev.path.distance().string())
+                  _env.out.print("Node route distance old " + pa.distance().string())
+                  if rev.path.distance() < pa.distance() then
+                     _routes.insert(digestof dst, rev.path)
+                     _env.out.print("Node route insert new route")
+                  else
+                     _env.out.print("Node route no insert new route")
+                  end
+               end
+            else
+               _env.out.print("Node route no dst")
+            end
+         else
+            _env.out.print("Node is in path")
+         end
       else
          _env.out.print("Node receive_event other event")
       end
@@ -204,16 +285,20 @@ actor Node is Agent
       for po in _neighbours.values() do
          _env.out.print("   port")
          let neighb = po.step.agent
+         _env.out.print("      route neighb " + (digestof neighb).string())
+         _env.out.print("      routes size " + _routes.size().string())
          for ro in _routes.values() do
             _env.out.print("      route")
             try
+               _env.out.print("      route to be sent")
                let fi: PathStep val = ro.first()?
                if (digestof fi.agent) != (digestof po.step.agent) then
                   _env.out.print("         send route")
                   
                   let ro2 = 
                   recover val
-                     let st  = po.step
+                     //let st  = po.step
+                     let st = PathStep(this, po.step.distance)
                      var ro3 = [st]
                      ro3.concat(ro.steps.values())
                      ro3
@@ -336,6 +421,18 @@ actor Simulator
          end
       end
 
+
+class Notify is TimerNotify
+   let _sim: Simulator
+
+   new iso create(sim: Simulator) =>
+      _sim = sim
+      
+   fun ref apply(timer: Timer, count: U64): Bool =>
+      _sim.display()
+      true
+      
+      
 actor Main
    """
    Main is the start of the simulation.
@@ -360,10 +457,21 @@ actor Main
          _sim.make_edge(nda, ndb, dist)
       end
       
-      _sim.display()
       
       _sim.start()
 
+      /*
+      for i in Range(0, 100) do
+         _sim.display()
+      end
+       */
+      _sim.display()
+       
+      let timers = Timers
+      let timer = Timer(Notify(_sim), 5_000_000_000, 2_000_000_000)
+      timers(consume timer)
+
+      
    fun add(ndname: String, nd: Node tag) =>
       _sim.add(ndname, nd)
 
