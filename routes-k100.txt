@@ -1,0 +1,269 @@
+
+
+
+
+node k100
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k136, 0.5
+      step k139, 2.5
+      step k128, 3
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k136, 0.5
+      step k139, 2.5
+      step k128, 3
+      step k117, 1
+      step k116, 2
+      step k112, 2
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k136, 0.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+      step k125, 2
+      step k122, 2.5
+      step k123, 8
+      step k119, 2
+      step k109, 1.5
+      step k110, 0.5
+      step k107, 2.5
+      step k111, 2
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+   route
+      step k102, 3
+      step k105, 3.5
+      step k106, 2
+      step k85, 5.5
+      step k68, 3.5
+      step k89, 2.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+      step k125, 2
+      step k122, 2.5
+      step k123, 8
+   route
+      step k235, 1.4
+      step k236, 2.2
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+      step k125, 2
+      step k122, 2.5
+      step k123, 8
+      step k119, 2
+   route
+      step k102, 3
+      step k101, 3
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+      step k125, 2
+      step k122, 2.5
+      step k123, 8
+      step k119, 2
+      step k109, 1.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+      step k125, 2
+      step k122, 2.5
+      step k123, 8
+      step k119, 2
+      step k109, 1.5
+      step k110, 0.5
+   route
+      step k102, 3
+      step k105, 3.5
+      step k103, 1
+      step k84, 1
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k120, 2.5
+      step k130, 3.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k141, 2
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+      step k125, 2
+      step k122, 2.5
+      step k123, 8
+      step k119, 2
+      step k109, 1.5
+      step k110, 0.5
+      step k107, 2.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k120, 2.5
+   route
+      step k102, 3
+      step k105, 3.5
+      step k106, 2
+      step k85, 5.5
+      step k68, 3.5
+   route
+      step k102, 3
+      step k105, 3.5
+      step k106, 2
+      step k85, 5.5
+      step k108, 4.5
+   route
+      step k102, 3
+      step k105, 3.5
+      step k103, 1
+   route
+      step k102, 3
+      step k105, 3.5
+      step k106, 2
+      step k85, 5.5
+   route
+      step k235, 1.4
+   route
+      step k102, 3
+      step k105, 3.5
+      step k106, 2
+      step k85, 5.5
+      step k68, 3.5
+      step k89, 2.5
+      step k86, 3
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k136, 0.5
+      step k139, 2.5
+      step k128, 3
+      step k117, 1
+      step k116, 2
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+   route
+      step k102, 3
+      step k105, 3.5
+      step k103, 1
+      step k84, 1
+      step k85, 5.5
+      step k68, 3.5
+      step k89, 2.5
+      step k86, 3
+      step k113, 0.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+      step k125, 2
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k136, 0.5
+      step k139, 2.5
+   route
+      step k102, 3
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k136, 0.5
+      step k139, 2.5
+      step k128, 3
+      step k117, 1
+   route
+      step k102, 3
+      step k105, 3.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+      step k137, 5
+      step k136, 0.5
+      step k139, 2.5
+      step k128, 3
+      step k129, 1.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k141, 2
+      step k142, 2
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k126, 1.9
+      step k125, 2
+      step k122, 2.5
+   route
+      step k235, 1.4
+      step k236, 2.2
+      step k138, 2.6
+      step k145, 3
+      step k121, 1
+   route
+      step k102, 3
+      step k105, 3.5
+      step k106, 2

@@ -1,5 +1,4 @@
 use "collections"
-use "promises"
 use "random"
 use "time"
 
@@ -25,6 +24,76 @@ class Graph
       //edges = [("n1","n2", F64(3)); ("n2","n3", F64(4)); ("n3","n1", F64(5))]
       edges = [("n1","n2", F64(3)); ("n2","n3", F64(4))]
    
+   new create_diepenbeek() =>
+      """
+      Constructor for Diepenbeek Graph.
+      """
+      nodes = 
+      [
+         "k100"; "k102"; "k101"; "k105"; "k103"; "k84"; "k85";   "k106"; "k126"
+         "k235"; "k236"
+         "k138"; "k141"; "k142"; "k125"; "k122"; "k121"; "k145"; "k108"; "k109"
+         "k119"; "k123"; "k68";  "k89";  "k86";  "k113"; "k111"; "k107"; "k110"
+         "k130"; "k120"; "k137"; "k112"; "k116"; "k117"; "k129"; "k128"; "k139"
+         "k136"
+      ]
+      edges =
+      [
+         ("k100","k102", 3.0)
+         ("k102","k101", 3.0)
+         ("k101","k103", 3.0)
+         ("k103","k84",  1.0)
+         ("k84", "k85",  5.5)
+         ("k85", "k106", 5.5)
+         ("k106","k105", 2.0)
+         ("k103","k105", 1.0)
+         ("k102","k105", 3.5)
+         ("k106","k126", 4.5)
+         ("k138","k141", 2.0)
+         ("k141","k142", 2.0)
+         
+         ("k100", "k235", 1.4)
+         ("k235", "k236", 2.2)
+         ("k126", "k236", 1.9)
+         ("k138", "k236", 2.6)
+         
+         ("k138", "k145", 3.0)
+         ("k125", "k126", 2.0)
+         ("k85",  "k108", 4.5)
+         ("k68",  "k108", 2.5)
+         ("k68",  "k85",  3.5)
+         ("k121", "k145", 1.0)
+         ("k122", "k125", 2.5)
+         ("k123", "k125", 12.0)
+         ("k122", "k123", 8.0)
+         ("k121", "k122", 2.0)
+         ("k121", "k137", 5.0)
+         ("k120", "k137", 2.5)
+         ("k120", "k130", 3.5)
+         ("k119", "k130", 2.5)
+         ("k119", "k123", 2.0)
+         ("k108", "k109", 5.0)
+         ("k68",  "k89",  2.5)
+         ("k86",  "k89",  3.0)
+         ("k86",  "k113", 0.5)
+         ("k109", "k113", 6.0)
+         ("k109", "k119", 1.5)
+         ("k111", "k113", 3.5)
+         ("k109", "k110", 0.5)
+         ("k107", "k110", 2.5)
+         ("k107", "k111", 2.0)
+         ("k107", "k129", 3.0)
+         ("k129", "k130", 3.5)
+         ("k128", "k129", 1.5)
+         ("k128", "k139", 3.0)
+         ("k120", "k139", 2.0)
+         ("k136", "k139", 2.5)
+         ("k136", "k137", 0.5)
+         ("k111", "k112", 3.0)
+         ("k112", "k116", 2.0)
+         ("k116", "k117", 2.0)
+         ("k117", "k128", 1.0)
+      ]
 
 class val PathStep
    """
@@ -160,18 +229,10 @@ trait Agent
    """
    fun sim(): Simulator tag
 
-   /*
-   fun eq(ag: Agent tag): Bool =>
-      (digestof ag) == (digestof this)
-   fun ne(ag: Agent tag): Bool =>
-      (digestof ag) != (digestof this)
-   fun hash(): USize =>
-      digestof this
-    */
-
    be add_neighbour(n: Agent tag, dist: F64)
    be display()
    be receive_event(from: Agent tag, event: Event val)
+   be req_routes()
    
 actor Node is Agent
    """
@@ -183,9 +244,8 @@ actor Node is Agent
    let _env: Env
    let _neighbours: SetIs[Port val]
    var _counter: U32
-   //let _routes: Array[Path val]
-   //let _routes: Map[Agent tag, Path val]
    let _routes: Map[USize, Path val]
+   let _debug: Bool val = false
 
    new create(si: Simulator, env: Env, name: String) =>
       _sim = si
@@ -195,10 +255,10 @@ actor Node is Agent
       _counter = 0
       //_routes = Array[Path val]
       _routes = Map[USize, Path val]
-      _env.out.print("create node " + _name)
+      if _debug then _env.out.print("create node " + _name) end
 
    be add_neighbour(n: Agent tag, dist: F64) =>
-      _env.out.print("add neighbour " + (digestof this).string() + " " + (digestof n).string() + " " + dist.string())
+      if _debug then _env.out.print("add neighbour " + (digestof this).string() + " " + (digestof n).string() + " " + dist.string()) end
       _neighbours.set(Port(PathStep(n, dist)))
 
    be display() =>
@@ -213,65 +273,78 @@ actor Node is Agent
          ro.display(_env)
       end
 
+   be req_routes() =>
+      let routs = recover Array[Array[(Agent tag, F64 val)]] end
+
+      for ro in _routes.values() do
+         let rout = recover Array[(Agent tag, F64 val)] end
+         for st in ro.steps.values() do
+            rout.push((st.agent, st.distance))
+         end
+         routs.push(consume rout)
+      end
+      sim().resp_routes(this, consume routs)
+      
+      
    be receive_event(from: Agent tag, event: Event val) =>
-      _env.out.print("Node receive_event")
+      if _debug then _env.out.print("Node receive_event") end
       match event
       | Start =>
-         _env.out.print("Node receive_event start")
+         if _debug then _env.out.print("Node receive_event start") end
          // add all the neighbours as route
          for po in _neighbours.values() do
-            _env.out.print("Node start po")
+            if _debug then _env.out.print("Node start po") end
             let pa: Path val = Path([po.step])
             //_routes.push(pa)
             try
                let dst = pa.destination()?
-               _env.out.print("Node start dst " + (digestof dst).string())
+               if _debug then _env.out.print("Node start dst " + (digestof dst).string()) end
                _routes.insert(digestof dst, pa)
-               _env.out.print("Node start routes size " + _routes.size().string())
+               if _debug then _env.out.print("Node start routes size " + _routes.size().string()) end
             else
-               _env.out.print("Node start no dst")
+               if _debug then _env.out.print("Node start no dst") end
             end
          end
          sim().start_timer(3000, this, TimerEvent)
 
       | TimerEvent =>
-         _env.out.print("Node receive_event timer event " + _counter.string())
+         if _debug then _env.out.print("Node receive_event timer event " + _counter.string()) end
          send_all_routes()
          _counter = _counter + 1
-         if _counter < 5 then
+         if _counter < 50 then
             sim().start_timer(3000, this, TimerEvent)
          end
 
       | let rev: RouteEvent val =>
-         _env.out.print("Node receive_event route event")
-         _env.out.print("   path size " + rev.path.steps.size().string())
+         if _debug then _env.out.print("Node receive_event route event") end
+         if _debug then _env.out.print("   path size " + rev.path.steps.size().string()) end
          if not rev.path.is_in_path(this) then
-            _env.out.print("Node route is not in path")
+            if _debug then _env.out.print("Node route is not in path") end
             try
                let dst = rev.path.destination()?
                if not _routes.contains(digestof dst) then
-                  _env.out.print("Node route is not in routes")
+                  if _debug then _env.out.print("Node route is not in routes") end
                   _routes.insert(digestof dst, rev.path)
                else
-                  _env.out.print("Node route is in routes")
+                  if _debug then _env.out.print("Node route is in routes") end
                   let pa = _routes(digestof dst)?
-                  _env.out.print("Node route distance new " + rev.path.distance().string())
-                  _env.out.print("Node route distance old " + pa.distance().string())
+                  if _debug then _env.out.print("Node route distance new " + rev.path.distance().string()) end
+                  if _debug then _env.out.print("Node route distance old " + pa.distance().string()) end
                   if rev.path.distance() < pa.distance() then
                      _routes.insert(digestof dst, rev.path)
-                     _env.out.print("Node route insert new route")
+                     if _debug then _env.out.print("Node route insert new route") end
                   else
-                     _env.out.print("Node route no insert new route")
+                     if _debug then _env.out.print("Node route no insert new route") end
                   end
                end
             else
-               _env.out.print("Node route no dst")
+               if _debug then _env.out.print("Node route no dst") end
             end
          else
-            _env.out.print("Node is in path")
+            if _debug then _env.out.print("Node is in path") end
          end
       else
-         _env.out.print("Node receive_event other event")
+         if _debug then _env.out.print("Node receive_event other event") end
       end
       sim().response(this)
 
@@ -279,21 +352,21 @@ actor Node is Agent
       _sim
 
    fun send_all_routes() =>
-      _env.out.print("Node send all routes")
+      if _debug then _env.out.print("Node send all routes") end
       
       // for each port
       for po in _neighbours.values() do
-         _env.out.print("   port")
+         if _debug then _env.out.print("   port") end
          let neighb = po.step.agent
-         _env.out.print("      route neighb " + (digestof neighb).string())
-         _env.out.print("      routes size " + _routes.size().string())
+         if _debug then _env.out.print("      route neighb " + (digestof neighb).string()) end
+         if _debug then _env.out.print("      routes size " + _routes.size().string()) end
          for ro in _routes.values() do
-            _env.out.print("      route")
+            if _debug then _env.out.print("      route") end
             try
-               _env.out.print("      route to be sent")
+               if _debug then _env.out.print("      route to be sent") end
                let fi: PathStep val = ro.first()?
                if (digestof fi.agent) != (digestof po.step.agent) then
-                  _env.out.print("         send route")
+                  if _debug then _env.out.print("         send route") end
                   
                   let ro2 = 
                   recover val
@@ -305,10 +378,10 @@ actor Node is Agent
                   end
                   sim().send_event(this, po.step.agent, RouteEvent(Path(ro2)) )
                else
-                  _env.out.print("         do not send route")
+                  if _debug then _env.out.print("         do not send route") end
                end
             else
-               _env.out.print("         no first")
+               if _debug then _env.out.print("         no first") end
             end
          end
       end
@@ -325,39 +398,34 @@ actor Simulator
    var _current_time: U64
    let _timers: MinHeap[Timed val]
    let _rand: Rand
+   let _debug:Bool val = true
    
    
    new create(env: Env) =>
       _env = env
-      env.out.print("start simulator")
+      if _debug then env.out.print("start simulator") end
       _agents = SetIs[Agent tag].create()
       _names = Map[String, (Agent tag|None)].create()
-      _env.out.print("create size " + _agents.size().string())
+      if _debug then _env.out.print("create size " + _agents.size().string()) end
       _events = List[(Agent tag, Agent tag, Event val)].create()
       _current_time = 0
       _timers = MinHeap[Timed val].create(10)
       _rand = Rand
 
    be add(agname: String, ag: Agent tag) =>
-      _env.out.print("add ag " + agname + " " + (digestof ag).string())
+      if _debug then _env.out.print("add ag " + agname + " " + (digestof ag).string()) end
       _agents.set(ag)
       _names.insert(agname, ag)
-      _env.out.print("add _agents size " + _agents.size().string())
-      _env.out.print("add _names  size " + _names.size().string())
-
-   be addpr(ag: Agent tag, pr: Promise[U32]) =>
-      _env.out.print("add ag " + (digestof ag).string())
-      _agents.set(ag)
-      _env.out.print("add size " + _agents.size().string())
-      pr(77)
+      if _debug then _env.out.print("add _agents size " + _agents.size().string()) end
+      if _debug then _env.out.print("add _names  size " + _names.size().string()) end
 
    be make_edge(aga: String, agb: String, dist: F64) =>
-      _env.out.print("make_edge " + aga + " " + agb + " " + dist.string())
+      if _debug then _env.out.print("make_edge " + aga + " " + agb + " " + dist.string()) end
       let agea: (Agent tag|None) = _names.get_or_else(aga, None)
       let ageb: (Agent tag|None) = _names.get_or_else(agb, None)
       match (agea, ageb)
       | (let a: Agent tag, let b: Agent tag) => 
-         _env.out.print("ag a b gevonden " + aga + " " + agb)
+         if _debug then _env.out.print("ag a b gevonden " + aga + " " + agb) end
          a.add_neighbour(b, dist)
          b.add_neighbour(a, dist)
       | (None, _) => _env.out.print("ag niet gevonden 1 " + aga)
@@ -371,8 +439,14 @@ actor Simulator
          ag.display()
       end
 
+   be display_routes() =>
+      _env.out.print("display routes")
+      for ag in _agents.values() do
+         ag.req_routes()
+      end
+
    be start() =>
-      _env.out.print("Simulator start")
+      if _debug then _env.out.print("Simulator start") end
       for ag in _agents.values() do
          send(ag, ag, Start)
       end
@@ -380,16 +454,40 @@ actor Simulator
       
    be response(from: Agent tag) =>
       _out_counter = _out_counter - 1
-      _env.out.print("Simulator response " + _out_counter.string())
+      if _debug then _env.out.print("Simulator response " + _out_counter.string()) end
       shift_time()
       
    be start_timer(time: U64, agent: Agent tag, event: Event val) =>
-      _env.out.print("Simulator start timer")
+      if _debug then _env.out.print("Simulator start timer") end
       let raval = _rand.next() % 20
       _timers.push(Timed(_current_time + time + raval, agent, event))
 
    be send_event(from: Agent tag, to: Agent tag, ev: Event val) =>
       send(from, to, ev)
+
+   be resp_routes(from: Agent tag, routes: Array[Array[(Agent tag, F64 val)]] iso) =>
+      if _debug then _env.out.print("Simulator resp routes") end
+      //if _debug then _env.out.print("node " + (digestof from).string()) end
+      if _debug then _env.out.print("node " + get_name(from)) end
+
+      recover iso
+         let rts: Array[Array[(Agent tag, F64 val)]] ref = consume routes
+         for rt in rts.values() do
+            if _debug then _env.out.print("   route") end
+            for (ag, dist) in rt.values() do
+               if _debug then _env.out.print("      step " + get_name(ag) + ", " + dist.string()) end
+            end
+         end
+         consume rts
+      end
+      
+   fun get_name(ag: Agent tag): String =>
+      for (nm, age) in _names.pairs() do
+         if ag is age then
+            return nm
+         end
+      end
+      "???"
 
    fun ref send(from: Agent tag, to: Agent tag, ev: Event val) =>
       _events.push((from, to, ev))
@@ -397,7 +495,7 @@ actor Simulator
       
    fun ref send_now(from: Agent tag, to: Agent tag, ev: Event val) =>
       _out_counter = _out_counter + 1
-      _env.out.print("Simulator send " + _out_counter.string())
+      if _debug then _env.out.print("Simulator send " + _out_counter.string()) end
       to.receive_event(from, ev)
 
    fun ref send_all() =>
@@ -412,12 +510,12 @@ actor Simulator
    fun ref shift_time() =>
       send_all()
       if (_events.size() == 0) and (_out_counter == 0) then
-         _env.out.print("Simulator shift time new time")
+         if _debug then _env.out.print("Simulator shift time new time") end
          try
             let ti = _timers.pop()?
             send(ti.get_agent(), ti.get_agent(), ti.get_event())
             _current_time = ti.get_time()
-            _env.out.print("Simulator shift time current time " + _current_time.string())
+            if _debug then _env.out.print("Simulator shift time current time " + _current_time.string()) end
          end
       end
 
@@ -429,7 +527,7 @@ class Notify is TimerNotify
       _sim = sim
       
    fun ref apply(timer: Timer, count: U64): Bool =>
-      _sim.display()
+      _sim.display_routes()
       true
       
       
@@ -439,21 +537,22 @@ actor Main
    """
    let _env: Env
    let _sim: Simulator
+   let _debug: Bool val = true
    
    new create(env: Env) =>
       _env       = env
       var a: U32 = 7
-      env.out.print("start main " + (digestof this).string())
+      if _debug then env.out.print("start main " + (digestof this).string()) end
       _sim =  Simulator(env)
       
-      let graph: Graph = Graph.create()
+      let graph: Graph = Graph.create_diepenbeek()
       
       for ndname in graph.nodes.values() do
          add(ndname, Node(_sim, env, ndname))
       end
 
       for (nda, ndb, dist) in graph.edges.values() do
-         env.out.print("edge " + nda + " " + ndb)
+         if _debug then env.out.print("edge " + nda + " " + ndb) end
          _sim.make_edge(nda, ndb, dist)
       end
       
@@ -465,7 +564,7 @@ actor Main
          _sim.display()
       end
        */
-      _sim.display()
+      //_sim.display()
        
       let timers = Timers
       let timer = Timer(Notify(_sim), 5_000_000_000, 2_000_000_000)
@@ -474,15 +573,3 @@ actor Main
       
    fun add(ndname: String, nd: Node tag) =>
       _sim.add(ndname, nd)
-
-   fun addpr(nd: Node tag) =>
-      let pr = Promise[U32]
-      _env.out.print("promise " + (digestof pr).string()) 
-      _sim.addpr(nd, pr)
-      pr.next[None](
-      recover 
-         {
-            (nr: U32)(_env) =>
-               _env.out.print("ok " + nr.string() + " " + (digestof this).string()) 
-         }
-      end)
